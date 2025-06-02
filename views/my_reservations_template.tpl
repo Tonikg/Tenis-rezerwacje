@@ -14,7 +14,7 @@
                 <th>Godziny</th>
                 <th>Ośrodek</th>
                 <th>Kort</th>
-                <th>Akcja</th>
+                <th>Anuluj rezerwację</th>
             </tr>
         </thead>
         <tbody>
@@ -30,7 +30,7 @@
                             <input type="submit" value="Anuluj" class="button-danger">
                         </form>
                     % else:
-                        Historyczna
+                        Nie możesz anulować.
                     % end
                 </td>
             </tr>

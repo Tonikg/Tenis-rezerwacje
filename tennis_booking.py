@@ -281,6 +281,15 @@ def logout():
     # session.save() 
     return redirect('/')
 
+
+# -- ZASADY REJESTROWANIA NA KORTY
+@app.route('/booking-rules')
+def booking_rules_page():
+    user = get_current_user()
+    return template(
+	'booking_rules_template', user=user
+    )
+
 # --- TRASY DLA ZALOGOWANEGO UŻYTKOWNIKA ---
 
 @app.route('/facilities')

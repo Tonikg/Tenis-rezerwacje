@@ -2,7 +2,7 @@
 <h2>Wybierz ośrodek tenisowy</h2>
 
 <form method="GET" action="/facilities" class="filter-form">
-    <label for="court_type_filter">Filtruj wg typu kortu:</label>
+    <label for="court_type_filter">Filtruj wg rodzaju kortu:</label>
     <select name="court_type" id="court_type_filter" onchange="this.form.submit()">
         <option value="">Wszystkie typy</option>
         % for type_key in available_court_types:
