@@ -14,6 +14,7 @@
                 <th>Godziny</th>
                 <th>Ośrodek</th>
                 <th>Kort</th>
+                <th>Cena</th>
                 <th>Anuluj rezerwację</th>
             </tr>
         </thead>
@@ -24,6 +25,13 @@
                 <td>{{res['time_str']}}</td>
                 <td>{{res['facility_name']}}</td>
                 <td>{{res['court_info']}}</td>
+                <td>
+                    % if res.get('price_paid') is not None:
+                        {{ "%.2f zł" % res['price_paid'] }}
+                    % else:
+                        N/A
+                    % end
+                </td>
                 <td>
                     % if res['can_cancel']:
                         <form method="POST" action="/reservations/cancel/{{res['id']}}" style="display:inline;" onsubmit="return confirm('Czy na pewno chcesz anulować tę rezerwację?');">

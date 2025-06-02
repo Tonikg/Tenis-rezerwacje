@@ -50,6 +50,7 @@ def init_db():
     cursor = conn.cursor()
     if not db_exists:
         print("Tworzenie tabel w bazie danych...")
+        # Tabela użytkowników
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,23 +59,45 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'user'
             )
         ''')
+        # Tabela ośrodków
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS facilities (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 address TEXT NOT NULL,
-                osm_embed_code TEXT
+                osm_embed_code TEXT,
+		        slogan TEXT
             )
         ''')
+        # tabela kortów
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS courts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 facility_id INTEGER NOT NULL,
-                court_number INTEGER NOT NULL,
-                court_type TEXT NOT NULL,
+                court_number INTEGER NOT NULL, --nr kortu w ośrodku
+                court_type TEXT NOT NULL, -- 'ziemny', 'twardy_hala', 'trawa'
                 FOREIGN KEY (facility_id) REFERENCES facilities(id)
             )
         ''')
+        # tabela reguł cenowych
+        #  # day_type: 'weekday', 'weekend'
+        # start_hour_slot: godzina rozpoczęcia obowiązywania ceny (np. 7 dla 7:00)
+        # end_hour_slot: godzina zakończenia obowiązywania ceny (np. 17 dla zakresu 7:00-16:59)
+        # (czyli sloty od start_hour_slot do end_hour_slot-1) 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pricing_rules(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id INTEGER NOT NULL,
+                day_type TEXT NOT NULL,
+                start_hour_slot INTEGER NOT NULL,
+                end_hour_slot INTEGER NOT NULL,
+                price_indoor REAL, -- cena dla kortów indoor (np. twardy_hala)
+                price_outdoor REAL, -- cena dla kortów outdoor (ziemny, trawiasty)
+                FOREIGN KEY (facility_id) REFERENCES facilities(id)
+                )
+        ''')
+
+        # tabela rezerwacyj
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS reservations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,10 +105,13 @@ def init_db():
                 court_id INTEGER NOT NULL,
                 reservation_date DATE NOT NULL,
                 start_hour INTEGER NOT NULL,
+                price_paid REAL,
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (court_id) REFERENCES courts(id)
             )
         ''')
+
+        # hasło admina
         admin_pass_hash = hash_password('admin123')
         try:
             cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
@@ -93,21 +119,61 @@ def init_db():
             print("Dodano domyślnego admina: login 'admin', hasło 'admin123'")
         except sqlite3.IntegrityError:
             print("Admin już istnieje.")
+            
+
+# dodanie osrodkow
         facilities_data = [
-            (1, "Park Skaryszewski", "Aleja Zieleniecka 2, Warszawa", '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0487,52.2470,21.0527,52.2490&layer=mapnik&marker=52.2480,21.0507" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2480&mlon=21.0507#map=17/52.2480/21.0507">Zobacz większą mapę</a></small>'),
-            (2, "Korty Solec", "ul. Solec 25, Warszawa", '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0370,52.2310,21.0410,52.2330&layer=mapnik&marker=52.2320,21.0390" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2320&mlon=21.0390#map=17/52.2320/21.0390">Zobacz większą mapę</a></small>'),
-            (3, "Korty Paryska", "ul. Paryska 10, Warszawa", '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0620,52.2410,21.0660,52.2430&layer=mapnik&marker=52.2420,21.0640" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2420&mlon=21.0640#map=17/52.2420/21.0640">Zobacz większą mapę</a></small>')
+            (1, "Park Skaryszewski", "Aleja Zieleniecka 2, Warszawa", 
+             '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0487,52.2470,21.0527,52.2490&layer=mapnik&marker=52.2480,21.0507" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2480&mlon=21.0507#map=17/52.2480/21.0507">Zobacz większą mapę</a></small>', 
+             "Poczuj klasykę tenisa na naszych 6 kortach ziemnych w sercu zielonej Pragi!"),
+            (2, "Korty Solec", "ul. Solec 25, Warszawa", 
+             '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0370,52.2310,21.0410,52.2330&layer=mapnik&marker=52.2320,21.0390" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2320&mlon=21.0390#map=17/52.2320/21.0390">Zobacz większą mapę</a></small>', 
+             "Graj przez cały rok! Korty ziemne i twarde w hali czekają nad Wisłą."),
+            (3, "Korty Paryska", "ul. Paryska 10, Warszawa", 
+             '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0620,52.2410,21.0660,52.2430&layer=mapnik&marker=52.2420,21.0640" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2420&mlon=21.0640#map=17/52.2420/21.0640">Zobacz większą mapę</a></small>', 
+             "Doświadcz różnorodności! Korty ziemne i unikalny kort trawiasty na Saskiej Kępie."),
+            # NOWE OŚRODKI z XLS
+            (4, "Korty Praga", "ul. Kawęczyńska 4, 03-855 Warszawa", 
+             '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0580%2C52.2570%2C21.0640%2C52.2600&layer=mapnik&marker=52.2585%2C21.0610" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.2585&mlon=21.0610#map=17/52.2585/21.0610">Zobacz większą mapę</a></small>', # ZASTĄP TO
+             "Nowoczesne korty na Pradze - graj komfortowo i nowocześnie!"), 
+            (5, "Centrum Warszawianka", "ul. Merliniego 2, 02-511 Warszawa", 
+             '<iframe width="100%" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=21.0210%2C52.1930%2C21.0270%2C52.1960&layer=mapnik&marker=52.1945%2C21.0240" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.1945&mlon=21.0240#map=17/52.1945/21.0240">Zobacz większą mapę</a></small>',
+             "Kompleks sportowy dla każdego - tenis na najwyższym poziomie!") 
         ]
-        cursor.executemany("INSERT INTO facilities (id, name, address, osm_embed_code) VALUES (?, ?, ?, ?)", facilities_data)
+        cursor.executemany("INSERT INTO facilities (id, name, address, osm_embed_code, slogan) VALUES (?, ?, ?, ?, ?)", facilities_data)
+
+        
+        # --- Dodanie danych kortów --- 
         courts_data = [
             (1, 1, 'ziemny'), (1, 2, 'ziemny'), (1, 3, 'ziemny'), (1, 4, 'ziemny'), (1, 5, 'ziemny'), (1, 6, 'ziemny'),
             (2, 1, 'ziemny'), (2, 2, 'ziemny'), (2, 3, 'ziemny'), (2, 4, 'ziemny'),
             (2, 5, 'twardy_hala'), (2, 6, 'twardy_hala'), (2, 7, 'twardy_hala'), (2, 8, 'twardy_hala'),
-            (3, 1, 'ziemny'), (3, 2, 'ziemny'), (3, 3, 'ziemny'), (3, 4, 'trawa')
+            (3, 1, 'ziemny'), (3, 2, 'ziemny'), (3, 3, 'ziemny'), (3, 4, 'trawa'),
+            (4, 1, 'twardy_hala'), (4, 2, 'twardy_hala'), (4, 3, 'ziemny'), (4, 4, 'ziemny'),
+            (5, 1, 'twardy_hala'), (5, 2, 'twardy_hala'), (5, 3, 'twardy_hala'), (5, 4, 'ziemny'), (5, 5, 'ziemny'), (5, 6, 'ziemny'),
         ]
-        for facility_id, court_num, court_type in courts_data:
-            cursor.execute("INSERT INTO courts (facility_id, court_number, court_type) VALUES (?, ?, ?)",
-                           (facility_id, court_num, court_type))
+        cursor.executemany("INSERT INTO courts (facility_id, court_number, court_type) VALUES (?, ?, ?)", courts_data)
+
+# --- Dodanie reguł cenowych ---
+        pricing_rules_data = [
+            (4, 'weekday', 7, 17, 65.0, 55.0), (4, 'weekday', 17, 23, 95.0, 85.0), (4, 'weekend', 8, 22, 80.0, 70.0),
+            (5, 'weekday', 7, 12, 80.0, 70.0), (5, 'weekday', 12, 15, 70.0, 60.0), (5, 'weekday', 15, 22, 100.0, 90.0),
+            (5, 'weekday', 22, 24, 85.0, 75.0), (5, 'weekend', 7, 24, 90.0, 80.0),
+            # Na przykład dla Parku Skaryszewskiego (id=1), zakładając stałą cenę (tylko outdoor):
+            (1, 'weekday', 10, 22, None, 50.0), # Cena od 10:00 do 21:00 w tygodniu
+            (1, 'weekend', 10, 22, None, 60.0), # Cena od 10:00 do 21:00 w weekendy
+            # Podobnie dla Korty Solec (id=2) i Paryska (id=3)
+            (2, 'weekday', 10, 22, 40.0, 50.0), # Cena od 10:00 do 21:00 w tygodniu
+            (2, 'weekend', 10, 22, 50.0, 60.0), # Cena od 10:00 do 21:00 w weekendy
+            (3, 'weekday', 10, 22, None, 50.0), # Cena od 10:00 do 21:00 w tygodniu
+            (3, 'weekend', 10, 22, None, 60.0), # Cena od 10:00 do 21:00 w weekendy
+        ]
+        cursor.executemany("""
+            INSERT INTO pricing_rules 
+            (facility_id, day_type, start_hour_slot, end_hour_slot, price_indoor, price_outdoor) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, pricing_rules_data)
+
         conn.commit()
         print("Baza danych zainicjalizowana i wypełniona danymi.")
     else:
@@ -158,7 +224,6 @@ def admin_required(f):
     return wrapper
 
 # --- FUNKCJE POMOCNICZE DLA LOGIKI APLIKACJI ---
-# (bez zmian - skopiuj z oryginalnego kodu)
 def get_facility_court_types_summary(facility_id):
     conn = connect_db()
     cursor = conn.cursor()
@@ -183,6 +248,49 @@ def get_facility_court_types_summary(facility_id):
         summary_parts.append(f"{count}x {friendly_name}")
     return ", ".join(summary_parts)
 
+# tennis_booking.py
+# ...
+
+def is_weekend(date_obj):
+    """Sprawdza, czy dana data to weekend (sobota lub niedziela)."""
+    # weekday() zwraca 0 dla poniedziałku, 5 dla soboty, 6 dla niedzieli
+    return date_obj.weekday() >= 5
+
+def get_price_for_slot(db_cursor, court_id, reservation_date_obj, start_hour):
+    """
+    Pobiera cenę dla danego kortu, daty i godziny.
+    Zwraca cenę (float) lub None, jeśli nie znaleziono reguły.
+    """
+    # Pobierz facility_id i court_type dla danego court_id
+    db_cursor.execute("SELECT facility_id, court_type FROM courts WHERE id = ?", (court_id,))
+    court_details = db_cursor.fetchone()
+    if not court_details:
+        return None
+    facility_id, court_type = court_details
+
+    day_type_str = 'weekend' if is_weekend(reservation_date_obj) else 'weekday'
+    
+    # Sprawdź, czy kort jest indoor czy outdoor
+    is_court_indoor = (court_type == 'twardy_hala')
+
+    # Znajdź pasującą regułę cenową
+    db_cursor.execute("""
+        SELECT price_indoor, price_outdoor 
+        FROM pricing_rules
+        WHERE facility_id = ? 
+          AND day_type = ?
+          AND start_hour_slot <= ? 
+          AND end_hour_slot > ? 
+    """, (facility_id, day_type_str, start_hour, start_hour)) # start_hour musi być w przedziale [start_slot, end_slot-1]
+    
+    price_rule = db_cursor.fetchone()
+    
+    if price_rule:
+        price_indoor, price_outdoor = price_rule
+        return price_indoor if is_court_indoor else price_outdoor
+    
+    return None # Brak pasującej reguły cenowej
+
 # --- PLIKI STATYCZNE (CSS, JS, OBRAZKI) ---
 @app.route('/static/<filename:path>')
 def send_static(filename):
@@ -197,8 +305,7 @@ def send_static(filename):
 @app.route('/')
 def index():
     user = get_current_user() # Potrzebne do base_layout.tpl poprzez template()
-    stock_photo_url = "/static/img/court_placeholder.jpg" # Przykład, jeśli masz obrazek
-    # stock_photo_url = "https://via.placeholder.com/800x300.png?text=Zdjęcie+Kortu+Tenisowego+(Wstaw+Własne)" 
+    stock_photo_url = "/static/img/moje_zdjecie.jpg" 
     
     # Zamiast definiowania szablonu, używamy nazwy pliku
     return template('index_template', user=user, stock_photo_url=stock_photo_url, message=None)
@@ -290,6 +397,52 @@ def booking_rules_page():
 	'booking_rules_template', user=user
     )
 
+@app.route('/our-centers')
+def our_centers_page():
+    user = get_current_user()
+    
+    conn = None
+    centers_data_for_template = []
+
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, name, address, osm_embed_code, slogan FROM facilities ORDER BY name")
+        facilities_from_db = cursor.fetchall()
+
+        for facility_row in facilities_from_db:
+            facility_id, name, address, osm_embed_code, slogan_from_db = facility_row
+            
+            court_summary = get_facility_court_types_summary(facility_id)
+            
+            photo_file_name = f'facility_{facility_id}.jpg'
+            photo_url = f"/static/img/{photo_file_name}"
+            
+            # photo_path = os.path.join(BASE_DIR, 'static', 'img', photo_file_name)
+            # if not os.path.exists(photo_path):
+            #     photo_url = "/static/img/placeholder_facility.jpg"
+
+            centers_data_for_template.append({
+                'id': facility_id,
+                'name': name,
+                'address': address,
+                'slogan': slogan_from_db if slogan_from_db else "Zapraszamy na nasze korty!",
+                'court_summary': court_summary,
+                'photo_url': photo_url,
+                'details_url': f"/facility/{facility_id}"
+            })
+            
+    except sqlite3.Error as e:
+        print(f"Błąd bazy danych przy pobieraniu ośrodków dla karuzeli: {e}")
+    finally:
+        if conn:
+            conn.close()
+            
+    return template('our_centers_template', user=user, centers=centers_data_for_template)
+
+
+
 # --- TRASY DLA ZALOGOWANEGO UŻYTKOWNIKA ---
 
 @app.route('/facilities')
@@ -299,22 +452,26 @@ def list_facilities():
     filter_court_type = request.query.get('court_type')
     conn = connect_db()
     cursor = conn.cursor()
-    query = "SELECT id, name, address, osm_embed_code FROM facilities"
+
+    query = "SELECT id, name, address, osm_embed_code, slogan FROM facilities"
     params = []
+
     if filter_court_type:
         query = """
-            SELECT DISTINCT f.id, f.name, f.address, f.osm_embed_code
+            SELECT DISTINCT f.id, f.name, f.address, f.osm_embed_code, f.slogan
             FROM facilities f
             JOIN courts c ON f.id = c.facility_id
             WHERE c.court_type = ?
         """
         params.append(filter_court_type)
+
     cursor.execute(query, params)
     facilities_raw = cursor.fetchall()
     conn.close()
+
     facilities = []
-    for facility_raw in facilities_raw:
-        facility_id, name, address, osm_code = facility_raw
+    for facility_raw in facilities_raw: 
+        facility_id, name, address, osm_code, slogan_text = facility_raw
         court_types_summary = get_facility_court_types_summary(facility_id)
         facility_photo_url = f"/static/img/facility_{facility_id}.jpg" # Załóżmy, że masz zdjęcia facility_1.jpg, facility_2.jpg itd.
         # Jeśli zdjęcie nie istnieje, można użyć placeholdera
@@ -329,7 +486,8 @@ def list_facilities():
             'address': address,
             'court_types_summary': court_types_summary,
             'photo_url': facility_photo_url,
-            'osm_embed_code': osm_code
+            'osm_embed_code': osm_code,
+            'slogan': slogan_text
         })
     available_court_types = ['ziemny', 'twardy_hala', 'trawa']
     return template('facilities_list_template', user=user, facilities=facilities, 
@@ -365,169 +523,221 @@ def facility_courts(facility_id):
     return template('facility_courts_template', user=user, facility_id=facility_id, facility_name=facility_name, courts=courts)
 
 
+
+# OBLICZANIE CENY
+# tennis_booking.py
+# ...
+
 @app.route('/court/<court_id:int>/book', method=['GET', 'POST'])
 @login_required
 def book_court(court_id):
     user = get_current_user()
     conn = connect_db()
     cursor = conn.cursor()
+
+    # ... (pobieranie court_info, selected_date_obj, available_hours, booked_hours, slot_prices - bez zmian) ...
     cursor.execute("""
         SELECT c.id, c.court_number, c.court_type, c.facility_id, f.name as facility_name
-        FROM courts c
-        JOIN facilities f ON c.facility_id = f.id
-        WHERE c.id = ?
+        FROM courts c JOIN facilities f ON c.facility_id = f.id WHERE c.id = ?
     """, (court_id,))
-    court_data = cursor.fetchone() # Nie zamykaj połączenia tutaj, jeśli będziesz go jeszcze używać
+    court_data = cursor.fetchone()
 
     if not court_data:
         conn.close()
         return "Kort nie znaleziony."
-
     court_info = {
-        'id': court_data[0], 
-        'number': court_data[1], 
-        'type': court_data[2], 
-        'facility_id': court_data[3],
-        'facility_name': court_data[4]
+        'id': court_data[0], 'number': court_data[1], 'type': court_data[2], 
+        'facility_id': court_data[3], 'facility_name': court_data[4]
     }
     type_names_map_single = {
-        'ziemny': 'Kort ziemny',
-        'twardy_hala': 'Kort z nawierzchnią twardą (hala)',
-        'trawa': 'Kort na trawie'
+        'ziemny': 'Kort ziemny', 'twardy_hala': 'Kort z nawierzchnią twardą (hala)', 'trawa': 'Kort na trawie'
     }
     court_info['full_name'] = f"{type_names_map_single.get(court_info['type'], court_info['type'])} nr {court_info['number']} w {court_info['facility_name']}"
-    
+
     selected_date_str = request.query.get('date', datetime.date.today().isoformat())
     try:
-        selected_date = datetime.date.fromisoformat(selected_date_str)
+        selected_date_obj = datetime.date.fromisoformat(selected_date_str)
     except ValueError:
-        selected_date = datetime.date.today()
+        selected_date_obj = datetime.date.today()
 
-    available_hours = list(range(10, 21))
+    available_hours_range = list(range(10, 21)) # Zmieniono nazwę dla jasności
     
-    # Pobranie istniejących rezerwacji dla tego kortu i daty - użyj już otwartego połączenia
-    cursor.execute("""
-        SELECT start_hour FROM reservations
-        WHERE court_id = ? AND reservation_date = ?
-    """, (court_id, selected_date))
-    booked_hours_tuples = cursor.fetchall()
-    # conn.close() # Zamknij dopiero po wszystkich operacjach odczytu dla GET
-    booked_hours = {bh[0] for bh in booked_hours_tuples}
+    cursor.execute("SELECT start_hour FROM reservations WHERE court_id = ? AND reservation_date = ?", 
+                   (court_id, selected_date_obj))
+    booked_hours_tuples_on_this_court = cursor.fetchall()
+    booked_hours_on_this_court = {bh[0] for bh in booked_hours_tuples_on_this_court}
+
+    slot_prices = {}
+    for hour in available_hours_range:
+        if hour not in booked_hours_on_this_court:
+            price = get_price_for_slot(cursor, court_id, selected_date_obj, hour)
+            slot_prices[hour] = f"{price:.2f} zł" if price is not None else "N/A"
+        else:
+            slot_prices[hour] = "Zajęty"
+    # Koniec pobierania danych dla GET, ale połączenie zostaje otwarte
+
 
     if request.method == 'POST':
-        # Ponowne otwarcie połączenia, jeśli było zamknięte, lub użycie istniejącego kursora
-        # Dla POST lepiej zarządzać połączeniem wewnątrz bloku POST
-        # conn_post = connect_db() # lub użyj conn, jeśli nie zostało zamknięte
-        # cursor_post = conn_post.cursor()
-        cursor_post = cursor # Użyjemy tego samego kursora, jeśli połączenie jest nadal otwarte
-
-        selected_slots_str = request.forms.getall('time_slots')
+        newly_selected_slots_str = request.forms.getall('time_slots') # Zmieniono nazwę
         
-        if not selected_slots_str:
-            conn.close() # Zamknij połączenie otwarte na początku funkcji
-            return template('book_court_template', user=user, court_info=court_info, 
-                            available_hours=available_hours, booked_hours=booked_hours,
-                            selected_date=selected_date.isoformat(), error="Musisz wybrać przynajmniej jedną godzinę.",
-                            datetime=datetime) # Przekaż datetime
+        error_page_data = { # Słownik danych do przekazania w razie błędu
+            'user': user, 'court_info': court_info, 
+            'available_hours': available_hours_range, 'booked_hours': booked_hours_on_this_court, 
+            'slot_prices': slot_prices, 'selected_date': selected_date_obj.isoformat(), 'datetime': datetime
+        }
 
-        selected_slots = sorted([int(s) for s in selected_slots_str])
-
-        if len(selected_slots) > 3:
+        if not newly_selected_slots_str:
             conn.close()
-            return template('book_court_template', user=user, court_info=court_info, 
-                            available_hours=available_hours, booked_hours=booked_hours,
-                            selected_date=selected_date.isoformat(), error="Możesz zarezerwować maksymalnie 3 godziny na raz.",
-                            datetime=datetime)
+            return template('book_court_template', **error_page_data, error="Musisz wybrać przynajmniej jedną godzinę.")
 
-        for i in range(len(selected_slots) - 1):
-            if selected_slots[i+1] - selected_slots[i] != 1:
-                conn.close()
-                return template('book_court_template', user=user, court_info=court_info, 
-                                available_hours=available_hours, booked_hours=booked_hours,
-                                selected_date=selected_date.isoformat(), error="Godziny muszą być po kolei (np. 13:00, 14:00, 15:00).",
-                                datetime=datetime)
-        
-        for slot_hour in selected_slots:
-            cursor_post.execute("""
-                SELECT id FROM reservations
-                WHERE court_id = ? AND reservation_date = ? AND start_hour = ?
-            """, (court_id, selected_date, slot_hour))
-            if cursor_post.fetchone():
-                cursor_post.execute("SELECT start_hour FROM reservations WHERE court_id = ? AND reservation_date = ?", (court_id, selected_date))
-                newly_booked_hours = {bh[0] for bh in cursor_post.fetchall()}
-                conn.close() # Zamknij połączenie
-                return template('book_court_template', user=user, court_info=court_info, 
-                                available_hours=available_hours, booked_hours=newly_booked_hours,
-                                selected_date=selected_date.isoformat(), error=f"Godzina {slot_hour}:00 została właśnie zarezerwowana. Wybierz inne.",
-                                datetime=datetime)
-        
-        cursor_post.execute("""
-            SELECT COUNT(*) FROM reservations r
+        newly_selected_slots = sorted([int(s) for s in newly_selected_slots_str])
+
+        # --- NOWA, ULEPSZONA WALIDACJA ---
+        # 1. Pobierz istniejące rezerwacje użytkownika dla tego ośrodka i dnia (na dowolnym korcie w tym ośrodku)
+        cursor.execute("""
+            SELECT r.start_hour 
+            FROM reservations r
             JOIN courts c ON r.court_id = c.id
             WHERE r.user_id = ? AND c.facility_id = ? AND r.reservation_date = ?
-        """, (user['id'], court_info['facility_id'], selected_date))
-        hours_already_booked_by_user_in_facility = cursor_post.fetchone()[0]
+        """, (user['id'], court_info['facility_id'], selected_date_obj))
+        
+        user_existing_slots_in_facility_today = {row[0] for row in cursor.fetchall()}
 
-        if hours_already_booked_by_user_in_facility + len(selected_slots) > 3:
-            conn.close() # Zamknij połączenie
-            return template('book_court_template', user=user, court_info=court_info, 
-                            available_hours=available_hours, booked_hours=booked_hours,
-                            selected_date=selected_date.isoformat(), error=f"Przekraczasz dzienny limit 3 godzin rezerwacji w tym ośrodku (masz już zarezerwowane {hours_already_booked_by_user_in_facility}h).",
-                            datetime=datetime)
+        # 2. Połącz istniejące sloty z nowo wybranymi (unikalne, posortowane)
+        #    Uwaga: nowo wybrane sloty nie mogą być wśród user_existing_slots_in_facility_today,
+        #    chyba że rezerwujemy ten sam kort, a inna rezerwacja tego użytkownika jest na innym korcie.
+        #    Na razie uprościmy: wszystkie rezerwacje użytkownika w ośrodku tego dnia tworzą jeden blok.
+        
+        all_user_slots_for_day_in_facility = sorted(list(user_existing_slots_in_facility_today.union(set(newly_selected_slots))))
+        
+        # 3. Sprawdź, czy łączna liczba godzin nie przekracza 3
+        if len(all_user_slots_for_day_in_facility) > 3:
+            conn.close()
+            # Komunikat o błędzie powinien być bardziej precyzyjny
+            existing_count = len(user_existing_slots_in_facility_today)
+            error_msg = (f"Możesz zarezerwować maksymalnie 3 godziny dziennie w tym ośrodku. "
+                         f"Masz już zarezerwowane {existing_count}h. "
+                         f"Próbujesz dodać {len(newly_selected_slots)}h, co przekroczy limit.")
+            return template('book_court_template', **error_page_data, error=error_msg)
 
+        # 4. Sprawdź, czy wszystkie sloty (stare + nowe) tworzą ciągły blok
+        if all_user_slots_for_day_in_facility: # Tylko jeśli są jakiekolwiek sloty
+            for i in range(len(all_user_slots_for_day_in_facility) - 1):
+                if all_user_slots_for_day_in_facility[i+1] - all_user_slots_for_day_in_facility[i] != 1:
+                    conn.close()
+                    # Komunikat o błędzie musi być jasny
+                    error_msg = ("Twoje rezerwacje (włącznie z nowo wybranymi) muszą tworzyć ciągły blok godzin. "
+                                 "Np. jeśli masz 12:00, możesz dobrać 11:00 lub 13:00. "
+                                 f"Twoje planowane godziny to: {', '.join(map(lambda x: f'{x}:00', all_user_slots_for_day_in_facility))}")
+                    return template('book_court_template', **error_page_data, error=error_msg)
+        
+        # --- KONIEC NOWEJ WALIDACJI ---
+        
+        # Pozostała część walidacji i logiki (ceny, zajętość konkretnego kortu)
+        total_price = 0
+        reservation_details_for_db = []
+
+        for slot_hour in newly_selected_slots: # Iterujemy tylko po NOWYCH slotach do zarezerwowania
+            # Sprawdzenie, czy NOWY slot nie jest już zajęty NA TYM KONKRETNYM KORCIE przez KOGOKOLWIEK
+            # (booked_hours_on_this_court zawiera już te informacje)
+            if slot_hour in booked_hours_on_this_court: # Ta walidacja jest już częściowo pokryta przez UI (disabled checkbox)
+                                                       # ale warto ją tu zostawić jako zabezpieczenie serwerowe
+                conn.close()
+                return template('book_court_template', **error_page_data, 
+                                error=f"Godzina {slot_hour}:00 na tym korcie została właśnie zajęta przez innego użytkownika. Odśwież stronę.")
+
+            price_for_this_slot = get_price_for_slot(cursor, court_id, selected_date_obj, slot_hour)
+            if price_for_this_slot is None:
+                conn.close()
+                return template('book_court_template', **error_page_data, 
+                                error=f"Brak ceny dla godziny {slot_hour}:00. Skontaktuj się z administratorem.")
+            total_price += price_for_this_slot
+            reservation_details_for_db.append((user['id'], court_id, selected_date_obj, slot_hour, price_for_this_slot))
+        
+        # Jeśli doszliśmy tutaj, wszystkie walidacje przeszły pomyślnie
         try:
-            for slot_hour in selected_slots:
-                cursor_post.execute("""
-                    INSERT INTO reservations (user_id, court_id, reservation_date, start_hour)
-                    VALUES (?, ?, ?, ?)
-                """, (user['id'], court_id, selected_date, slot_hour))
-            conn.commit() # Użyj oryginalnego obiektu połączenia 'conn'
+            for detail in reservation_details_for_db:
+                cursor.execute("""
+                    INSERT INTO reservations (user_id, court_id, reservation_date, start_hour, price_paid)
+                    VALUES (?, ?, ?, ?, ?)
+                """, detail)
+            conn.commit()
         except sqlite3.Error as e:
             conn.rollback()
-            conn.close() # Zamknij połączenie
-            return template('book_court_template', user=user, court_info=court_info, 
-                            available_hours=available_hours, booked_hours=booked_hours,
-                            selected_date=selected_date.isoformat(), error=f"Błąd bazy danych podczas rezerwacji: {e}",
-                            datetime=datetime)
-        # finally: # Usunięcie finally, bo conn jest zamykane w różnych miejscach
-            # conn.close() # Zamknij połączenie
+            conn.close()
+            return template('book_court_template', **error_page_data, error=f"Błąd bazy danych podczas rezerwacji: {e}")
             
-        conn.close() # Zamknij połączenie po udanej operacji POST
-        return redirect('/my_reservations?success=true')
+        conn.close()
+        return redirect(f'/my_reservations?success=true&total_price={total_price:.2f}')
 
-    conn.close() # Zamknij połączenie otwarte na początku funkcji (dla GET)
-    return template('book_court_template', user=user, court_info=court_info, 
-                    available_hours=available_hours, booked_hours=booked_hours,
-                    selected_date=selected_date.isoformat(), error=None,
-                    datetime=datetime) # Przekaż datetime dla min daty
+    # Widok GET
+    conn.close() 
+    return template('book_court_template', 
+                    user=user, court_info=court_info, 
+                    available_hours=available_hours_range, 
+                    booked_hours=booked_hours_on_this_court, 
+                    slot_prices=slot_prices,
+                    selected_date=selected_date_obj.isoformat(), error=None,
+                    datetime=datetime)
 
+
+# WYŚWIETLANIE REZERWACJI KIENTA
+# tennis_booking.py
 
 @app.route('/my_reservations')
 @login_required
 def my_reservations():
     user = get_current_user()
-    success_message = request.query.get('success')
+    success_message_text = request.query.get('success')
+    total_price_from_redirect = request.query.get('total_price') # Pobierz cenę z redirect po nowej rezerwacji
+
+    filter_date_str = request.query.get('filter_date')
+    filter_facility_id_str = request.query.get('filter_facility')
+
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT r.id, r.reservation_date, r.start_hour,
-               c.court_number, c.court_type, f.name as facility_name
+    cursor.execute("SELECT id, name FROM facilities ORDER BY name") # Dla filtrów
+    available_facilities_raw = cursor.fetchall()
+    available_facilities = [(f_id, f_name) for f_id, f_name in available_facilities_raw]
+
+    # Zapytanie SQL pobiera r.price_paid
+    sql_query = """
+        SELECT r.id, r.reservation_date, r.start_hour, r.price_paid, -- << TUTAJ POBIERAMY CENĘ
+               c.court_number, c.court_type, f.name as facility_name, f.id as facility_id
         FROM reservations r
         JOIN courts c ON r.court_id = c.id
         JOIN facilities f ON c.facility_id = f.id
         WHERE r.user_id = ?
-        ORDER BY r.reservation_date DESC, r.start_hour DESC
-    """, (user['id'],))
-    reservations_raw = cursor.fetchall()
-    conn.close()
+    """
+    params = [user['id']]
+    # ... (logika dodawania filtrów do sql_query i params - bez zmian) ...
+    if filter_date_str:
+        try:
+            filter_date = datetime.date.fromisoformat(filter_date_str)
+            sql_query += " AND r.reservation_date = ?"
+            params.append(filter_date)
+        except ValueError:
+            filter_date_str = None
+    if filter_facility_id_str and filter_facility_id_str.isdigit():
+        filter_facility_id = int(filter_facility_id_str)
+        sql_query += " AND f.id = ?"
+        params.append(filter_facility_id)
+    else:
+        filter_facility_id_str = None
+    sql_query += " ORDER BY r.reservation_date DESC, r.start_hour DESC"
+
+
+    cursor.execute(sql_query, params)
+    reservations_raw = cursor.fetchall() # Każdy wiersz będzie teraz miał 8 kolumn
+    conn.close() 
+
     type_names_map = {
-        'ziemny': 'Kort ziemny',
-        'twardy_hala': 'Kort z naw. twardą (hala)',
-        'trawa': 'Kort na trawie'
+        'ziemny': 'Kort ziemny', 'twardy_hala': 'Kort z naw. twardą (hala)', 'trawa': 'Kort na trawie'
     }
     today = datetime.date.today()
     reservations = []
-    for res_id, res_date_obj, start_hour, court_num, court_type, facility_name in reservations_raw:
+    # Rozpakowujemy teraz 8 wartości, w tym price_paid
+    for res_id, res_date_obj, start_hour, price_paid_val, court_num, court_type, facility_name, _facility_id in reservations_raw:
         can_cancel = res_date_obj >= today
         reservations.append({
             'id': res_id,
@@ -535,11 +745,27 @@ def my_reservations():
             'time_str': f"{start_hour:02d}:00 - {start_hour+1:02d}:00",
             'court_info': f"{type_names_map.get(court_type, court_type)} nr {court_num}",
             'facility_name': facility_name,
+            'price_paid': price_paid_val, # << PRZEKAZUJEMY POBRANĄ CENĘ
             'can_cancel': can_cancel
         })
-    message = "Rezerwacja zakończona pomyślnie!" if success_message else None
-    return template('my_reservations_template', user=user, reservations=reservations, message=message)
+    
+    message_display = "Rezerwacja zakończona pomyślnie!" if success_message_text else None
+    total_price_msg_display = total_price_from_redirect # Komunikat o cenie ostatniej rezerwacji
 
+    current_filters = {
+        'date': filter_date_str,
+        'facility': filter_facility_id_str 
+    }
+
+    return template('my_reservations_template', 
+                    user=user, 
+                    reservations=reservations, 
+                    message=message_display,
+                    total_price_msg=total_price_msg_display, # Przekazanie informacji o cenie z redirectu
+                    available_facilities=available_facilities,
+                    current_filters=current_filters)
+
+# USUWANIE REZERWACYJ
 @app.route('/reservations/cancel/<reservation_id:int>', method='POST')
 @login_required
 def cancel_reservation(reservation_id):

@@ -6,7 +6,7 @@
 
     <p>Prosimy o zapoznanie się z poniższymi zasadami przed dokonaniem rezerwacji:</p>
 
-    <ul>
+    <ul class="custom-list-spacing">
         <li><strong>Konto użytkownika:</strong> Aby zarezerwować kort, musisz posiadać zarejestrowane i aktywne konto w naszym systemie.</li>
         <li><strong>Dostępne godziny:</strong> Rezerwacje są możliwe na pełne godziny w przedziale od 10:00 do 21:00 (ostatnia możliwa rezerwacja to 20:00-21:00).</li>
         <li><strong>Maksymalny czas rezerwacji:</strong> Jeden użytkownik może zarezerwować maksymalnie trzy godziny gry w danym ośrodku w ciągu jednego dnia.</li>
@@ -17,7 +17,6 @@
                 <li>Rezerwacji na bieżący dzień lub rezerwacji historycznych nie można samodzielnie anulować.</li>
             </ul>
         </li>
-        <li><strong>Płatności:</strong> (Jeśli będziesz miał system płatności, dodaj tutaj zasady. Na razie można pominąć lub dodać informację o płatności na miejscu).</li>
         <li><strong>Odpowiedzialność:</strong> Użytkownicy są odpowiedzialni za stan kortu podczas swojej rezerwacji.</li>
     </ul>
 

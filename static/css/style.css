@@ -1,0 +1,202 @@
+/* static/css/style.css */
+body { font-family: Monaco, sans-serif; margin: 4%; background-color: #f4f4f4; color: #333; }
+/* ... (istniejące style nagłówka) ... */
+header {
+    background-color: #333;
+    color: white;
+    padding: 10px 20px; /* Zmniejsz padding, jeśli linki mają własny */
+    margin-bottom: 20px;
+    display: flex; /* Użyjemy flexbox dla lepszego wyrównania */
+    justify-content: space-between; /* Rozmieści h1 i nav na przeciwnych końcach */
+    align-items: center; /* Wyrówna elementy w pionie */
+}
+header h1 { margin: 0; /* display: inline-block; - już niepotrzebne dzięki flexbox w header */ }
+header h1 a { /* Dodatkowe style dla linku w h1, jeśli potrzebne */
+    color: white; text-decoration: none; }
+nav {
+    /* float: right; - niepotrzebne dzięki flexbox w header */
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+nav ul li {
+    margin-left: 10px; /* Domyślny margines dla wszystkich elementów li */
+}
+nav ul li:first-child {
+    margin-left: 0;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+nav ul li a:hover,
+nav ul li a.active {
+    background-color: #555;
+}
+
+/* STYLIZACJA ELEMENTU "WITAJ..." I "WYLOGUJ" - UŻYWAJĄC KLASY */
+nav ul li.user-info-logout {
+    margin-left: auto;  /* Wypchnij na prawo */
+    margin-top: 0;      /* Resetuj inne marginesy, jeśli to konieczne */
+    margin-bottom: 0;
+    margin-right: 0;    /* Zazwyczaj niepotrzebne, jeśli to ostatni element na prawo */
+    padding: 8px 0;     /* Dostosuj padding dla całego bloku "Witaj..." */
+    /* Usuń inne style, które mogą być dziedziczone, a nie są pożądane, np. jeśli 'a' wewnątrz ma mieć inny wygląd */
+}
+
+/* Link "Wyloguj" wewnątrz li.user-info-logout */
+nav ul li.user-info-logout a {
+    padding: 2px 5px; /* Mniejszy, specyficzny padding dla samego linku */
+    background-color: transparent; /* Upewnij się, że nie dziedziczy tła z ogólnego 'a' */
+    /* Możesz dodać inne specyficzne style dla linku "Wyloguj" */
+}
+
+nav ul li.user-info-logout a:hover {
+    background-color: #777; /* Lekkie tło dla linku wyloguj po najechaniu */
+    text-decoration: underline; /* Podkreślenie po najechaniu */
+}
+.container { background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+.facility-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px; background-color: #fff; }
+.facility-box h3 { margin-top: 0; }
+.court-box { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+.button, input[type=submit] { background-color: #5cb85c; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+.button:hover, input[type=submit]:hover { background-color: #4cae4c; }
+.button-danger { background-color: #d9534f; }
+.button-danger:hover { background-color: #c9302c; }
+.button-secondary { background-color: #6c757d; }
+.button-secondary:hover { background-color: #5a6268; }
+label { display: block; margin-bottom: 5px; font-weight: bold; }
+input[type=text], input[type=password], input[type=date], select, input[type=number] { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+.error { color: red; margin-bottom: 10px; }
+.success { color: green; margin-bottom: 10px; }
+.reservation-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+.reservation-item:last-child { border-bottom: none; }
+.filter-form { margin-bottom: 20px; padding: 10px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 4px; }
+.filter-form label, .filter-form select, .filter-form input[type=date], .filter-form input[type=submit], .filter-form .button-secondary { margin-right: 10px; display: inline-block; vertical-align: middle; margin-bottom: 5px;}
+.filter-form input[type=text], .filter-form input[type=number], .filter-form select { width: auto; min-width: 150px;}
+table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background-color: #f2f2f2; }
+
+.custom-list-spacing {
+    line-height: 1.8;
+}
+
+.custom-list-spacing ul {
+    line-height: 1.6; /*dla zagnieżdżonych*/
+    margin-top: 0.2em; margin-bottom: 0.2em;
+}
+
+/* Style dla listy ośrodków w układzie trójkolumnowym */
+.facility-box-row {
+    display: flex; /* Włączamy Flexbox */
+    flex-wrap: wrap; /* Pozwól na zawijanie na mniejszych ekranach, jeśli trzeba */
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 20px; /* Zwiększony margines dla lepszego oddzielenia */
+    border-radius: 5px; /* Lekko zaokrąglone rogi dla całego wiersza */
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtelny cień */
+}
+
+.facility-column {
+    padding: 0 10px; /* Odstęp wewnętrzny dla kolumn */
+    box-sizing: border-box; /* Padding wliczony w szerokość/wysokość */
+}
+
+/* Definicja szerokości kolumn */
+/* Możesz dostosować te wartości procentowe według potrzeb */
+.facility-info {
+    flex: 0 0 40%; /* Kolumna z info zajmuje 40% szerokości, nie rośnie, nie kurczy się */
+    /* Na mniejszych ekranach może zajmować 100% - obsłużone przez @media query poniżej */
+}
+
+.facility-photo {
+    flex: 0 0 30%; /* Kolumna ze zdjęciem zajmuje 30% */
+    display: flex; /* Aby wyśrodkować obrazek w pionie, jeśli jest mniejszy */
+    align-items: center;
+    justify-content: center;
+}
+.facility-photo img { /* Upewnij się, że obrazek nie rozpycha kolumny */
+    max-width: 100%;
+    max-height: 200px; /* Ograniczenie wysokości zdjęcia, jeśli chcesz */
+    object-fit: cover; /* Jak ma się zachować obrazek, jeśli proporcje się nie zgadzają */
+}
+
+
+.facility-map {
+    flex: 0 0 30%; /* Kolumna z mapą zajmuje 30% */
+}
+.facility-map iframe { /* Upewnij się, że iframe mapy jest responsywny */
+    max-width: 100%;
+    height: 200px; /* Stała wysokość mapy lub dostosuj */
+}
+
+
+/* Responsywność dla mniejszych ekranów */
+@media (max-width: 768px) { /* Np. dla tabletów i telefonów w pionie */
+    .facility-box-row {
+        flex-direction: column; /* Kolumny jedna pod drugą */
+    }
+
+    .facility-info,
+    .facility-photo,
+    .facility-map {
+        flex: 0 0 100%; /* Każda kolumna zajmuje pełną szerokość */
+        margin-bottom: 15px; /* Odstęp między kolumnami w układzie pionowym */
+    }
+
+    .facility-photo {
+        order: -1; /* Opcjonalnie: Zmień kolejność, np. zdjęcie na górze */
+    }
+    .facility-map {
+         /* Możesz też ukryć mapę na bardzo małych ekranach, jeśli zajmuje za dużo miejsca */
+    }
+}
+
+
+/* STYLE DLA PRZYCISKÓW */
+.button, input[type=submit], .button-secondary, .button-outline-secondary { /* Dodajemy nową klasę do wspólnych stylów */
+    padding: 10px 15px;
+    border: 1px solid transparent; /* Domyślnie przezroczysta ramka, chyba że nadpisana */
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center; /* Dodane dla lepszego wyglądu przycisków-linków */
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Płynne przejścia */
+}
+
+/* Istniejący przycisk drugorzędny (szary) */
+.button-secondary {
+    background-color: #6c757d; /* Szary kolor tła */
+    color: white; /* Biały tekst */
+    border-color: #6c757d; /* Ramka w tym samym kolorze co tło */
+}
+.button-secondary:hover {
+    background-color: #5a6268; /* Ciemniejszy szary po najechaniu */
+    border-color: #545b62;
+    color: white; /* Upewnijmy się, że kolor tekstu pozostaje biały */
+}
+
+/* NOWA KLASA: Przycisk drugorzędny typu "outline" */
+.button-outline-secondary {
+    background-color: transparent; /* Przezroczyste tło */
+    color: #6c757d; /* Kolor tekstu taki jak ramka */
+    border: 1px solid #6c757d; /* Widoczna ramka */
+}
+.button-outline-secondary:hover {
+    background-color: #6c757d; /* Tło zmienia się na kolor ramki po najechaniu */
+    color: white; /* Tekst staje się biały */
+    border-color: #6c757d; /* Ramka może pozostać taka sama lub też lekko się zmienić */
+}
