@@ -47,10 +47,8 @@
                         % if user_info['role'] == 'admin':
                             <li><a href="/admin">Panel Admina</a></li>
                         % end
-			<li><a href="/our-centers">Nasze Ośrodki</a></li>
                         <li><a href="/facilities">Zarezerwuj Kort</a></li>
                         <li><a href="/my_reservations">Historia Rezerwacji</a></li>
-                        <!-- NOWY LINK - DODAJ TĘ LINIĘ -->
                         <li><a href="/booking-rules">Zasady Rezerwacji</a></li>
                         <li>Witaj, {{user_info['username']}} (<a href="/logout">Wyloguj</a>)</li>
                     % else: # Niezalogowany użytkownik
