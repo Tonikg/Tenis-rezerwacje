@@ -1,8 +1,7 @@
 # tennis_booking.py
 
 # --- IMPORTY ---
-# Bottle to lekki framework webowy WSGI dla Pythona.
-# Teraz importujemy `TEMPLATE_PATH` aby dodać ścieżkę do naszych szablonów
+#  `TEMPLATE_PATH` aby dodać ścieżkę do szablonów
 from bottle import Bottle, run, template, request, redirect, static_file, TEMPLATE_PATH
 # sqlite3 do obsługi bazy danych SQLite.
 import sqlite3
@@ -37,8 +36,7 @@ app = Bottle()
 # --- NAZWA BAZY DANYCH ---
 DB_NAME = 'tennis_courts.db'
 
-# --- FUNKCJE POMOCNICZE DLA BAZY DANYCH ---
-# (bez zmian - skopiuj z oryginalnego kodu)
+# --- FUNKCJE DLA INICJALIZACJI BAZY DANYCH ---
 def connect_db():
     """Nawiązuje połączenie z bazą danych SQLite."""
     return sqlite3.connect(DB_NAME, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
@@ -248,8 +246,6 @@ def get_facility_court_types_summary(facility_id):
         summary_parts.append(f"{count}x {friendly_name}")
     return ", ".join(summary_parts)
 
-# tennis_booking.py
-# ...
 
 def is_weekend(date_obj):
     """Sprawdza, czy dana data to weekend (sobota lub niedziela)."""
@@ -710,7 +706,7 @@ def my_reservations():
         WHERE r.user_id = ?
     """
     params = [user['id']]
-    # ... (logika dodawania filtrów do sql_query i params - bez zmian) ...
+
     if filter_date_str:
         try:
             filter_date = datetime.date.fromisoformat(filter_date_str)
@@ -728,7 +724,7 @@ def my_reservations():
 
 
     cursor.execute(sql_query, params)
-    reservations_raw = cursor.fetchall() # Każdy wiersz będzie teraz miał 8 kolumn
+    reservations_raw = cursor.fetchall()
     conn.close() 
 
     type_names_map = {
@@ -736,7 +732,6 @@ def my_reservations():
     }
     today = datetime.date.today()
     reservations = []
-    # Rozpakowujemy teraz 8 wartości, w tym price_paid
     for res_id, res_date_obj, start_hour, price_paid_val, court_num, court_type, facility_name, _facility_id in reservations_raw:
         can_cancel = res_date_obj >= today
         reservations.append({
@@ -745,7 +740,7 @@ def my_reservations():
             'time_str': f"{start_hour:02d}:00 - {start_hour+1:02d}:00",
             'court_info': f"{type_names_map.get(court_type, court_type)} nr {court_num}",
             'facility_name': facility_name,
-            'price_paid': price_paid_val, # << PRZEKAZUJEMY POBRANĄ CENĘ
+            'price_paid': price_paid_val,
             'can_cancel': can_cancel
         })
     
@@ -795,8 +790,8 @@ def cancel_reservation(reservation_id):
         conn.close()
     return redirect('/my_reservations')
 
-# --- TRASY DLA ADMINISTRATORA ---
 
+# --- ROUTES DLA ADMINISTRATORA ---
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
@@ -853,15 +848,11 @@ def admin_facility_reservations(facility_id):
     sql_query += f" ORDER BY {sort_by} {sort_order.upper()}"
     cursor.execute(sql_query, params)
     reservations_raw = cursor.fetchall()
-    # conn.close() # Zamknij po wszystkich operacjach odczytu
 
-    # Dostępne typy kortów do filtrowania (z tego ośrodka)
-    # conn_types = connect_db() # niepotrzebne nowe połączenie
-    # cursor_types = conn_types.cursor()
     cursor.execute("SELECT DISTINCT court_type FROM courts WHERE facility_id = ?", (facility_id,))
     available_court_types_raw = cursor.fetchall()
     available_court_types = [row[0] for row in available_court_types_raw]
-    conn.close() # Teraz zamknij połączenie
+    conn.close()
 
     type_names_map_display = {
         'ziemny': 'Ziemny',
@@ -961,7 +952,7 @@ def admin_manage_courts(facility_id):
                     facility_name=facility_name, 
                     courts=courts,
                     all_court_types=all_court_types,
-                    error_msg=error_msg, # Przekazujemy przetworzoną wiadomość
+                    error_msg=error_msg, 
                     success_msg=success_msg)
 
 
@@ -1018,8 +1009,6 @@ def admin_delete_court(court_id):
         if future_reservations_count > 0:
             query_params = "?error=CannotDeleteCourtWithFutureReservations"
         else:
-            # Można rozważyć usunięcie WSZYSTKICH rezerwacji (także historycznych) dla tego kortu
-            # cursor.execute("DELETE FROM reservations WHERE court_id = ?", (court_id,))
             cursor.execute("DELETE FROM courts WHERE id = ?", (court_id,))
             conn.commit()
             query_params = "?success=CourtDeleted"
@@ -1032,12 +1021,6 @@ def admin_delete_court(court_id):
     return redirect(f'{redirect_url_base}{query_params}')
 
 
-# --- DEFINICJE SZABLONÓW (HTML) ---
-# JUŻ NIEPOTRZEBNE, bo szablony są w plikach .tpl
-# SimpleTemplate.defaults["user"] = None # To też nie jest już najlepsze miejsce
-# SimpleTemplate.defaults["base_layout"] = """...""" # Usunięte
-
-
 # --- URUCHOMIENIE APLIKACJI ---
 if __name__ == '__main__':
     init_db()
@@ -1045,11 +1028,9 @@ if __name__ == '__main__':
         os.makedirs('./session_data')
     
     # Przekazanie funkcji i modułów do wszystkich szablonów
-    # tak, aby były dostępne np. w base_layout.tpl
-    # oraz datetime w book_court.tpl
     from bottle import SimpleTemplate
     SimpleTemplate.defaults['get_current_user'] = get_current_user
-    SimpleTemplate.defaults['datetime'] = datetime # udostępnia cały moduł datetime
+    SimpleTemplate.defaults['datetime'] = datetime
         
     app_with_session = SessionMiddleware(app, session_opts)
     run(app_with_session, host='localhost', port=8080, debug=True, reloader=True)

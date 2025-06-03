@@ -47,18 +47,16 @@ nav ul li a.active {
 /* STYLIZACJA ELEMENTU "WITAJ..." I "WYLOGUJ" - UŻYWAJĄC KLASY */
 nav ul li.user-info-logout {
     margin-left: auto;  /* Wypchnij na prawo */
-    margin-top: 0;      /* Resetuj inne marginesy, jeśli to konieczne */
+    margin-top: 0;    
     margin-bottom: 0;
-    margin-right: 0;    /* Zazwyczaj niepotrzebne, jeśli to ostatni element na prawo */
+    margin-right: 0;   
     padding: 8px 0;     /* Dostosuj padding dla całego bloku "Witaj..." */
-    /* Usuń inne style, które mogą być dziedziczone, a nie są pożądane, np. jeśli 'a' wewnątrz ma mieć inny wygląd */
 }
 
 /* Link "Wyloguj" wewnątrz li.user-info-logout */
 nav ul li.user-info-logout a {
     padding: 2px 5px; /* Mniejszy, specyficzny padding dla samego linku */
     background-color: transparent; /* Upewnij się, że nie dziedziczy tła z ogólnego 'a' */
-    /* Możesz dodać inne specyficzne style dla linku "Wyloguj" */
 }
 
 nav ul li.user-info-logout a:hover {
